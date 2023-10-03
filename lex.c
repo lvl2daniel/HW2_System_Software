@@ -1,6 +1,8 @@
 
-#define MAX_TOKENS 1000
-#define MAX_LEXEMES 500
+// Authors: Ian Ordonez, Daniel Gonzalez (Group 18)
+// Assignment: HW2
+// Class: COP 3402 Fall 0001
+#define MAX_LEXEMES 1000
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +27,7 @@ typedef struct lexeme {
 
 
 //Make string array called errors to print out errors to stdout
-char errors[8][100] = {"Error 1: Identifier too long", "Error 2: Number too long", "Error 3: Invalid symbol", "Error 4: Invalid identifier", "Error 5: Invalid keyword", "Error 6: Invalid assignment operator", "Error 7: Invalid symbol after assignment operator", "Error 8: Invalid symbol after number"};
+char errors[8][100] = {"Error: Identifier too long", "Error: Number too long", "Error: Invalid symbol", "Error: Invalid identifier", "Error: Invalid keyword", "Error: Invalid assignment operator", "Error: Invalid symbol after assignment operator", "Error: Invalid symbol after number"};
 
 
 
@@ -52,9 +54,9 @@ int main(int argc, char *argv[]) {
         // If an argument is provided, use it as the filename
         filename = argv[1];
     } else {
-        // Otherwise, prompt the user for a filename
-        printf("Enter the name of the file to be compiled: ");
-        scanf("%s", filename);
+        // Otherwise, return err
+        printf("Error: No source program file provided.\n");
+        return 1;
     }
 
 
@@ -65,7 +67,6 @@ int main(int argc, char *argv[]) {
     }
     //read in the file
     while (fscanf(sourcefile, "%c", &tempstr) != EOF){
-        printf("%c", tempstr);
         input[index++] = tempstr;
     }
     //null terminator for the input
@@ -93,7 +94,6 @@ lexeme *tokenizeSourceProgram(char *input) {
 
     //loop through the input string
     while(input[input_location] != '\0'){
-        //print lexemelist at lexemeindex
         int currChar = input[input_location];
         strcpy(tempstr, "");
         tempstr_location = 0;
@@ -209,8 +209,14 @@ lexeme *tokenizeSourceProgram(char *input) {
                         tempstr_location++;
                         input_location++;
                     }
+                    if (isalnum(input[input_location + 1])){
+                        lexemeList[lexeme_index].class = 99;
+                        lexemeList[lexeme_index].err = 1;
+                    }
+                    else{
                     lexemeList[lexeme_index].class = identsym;
                     strcpy(lexemeList[lexeme_index].lexeme, tempstr);
+                    }
 
 
                 }
@@ -372,6 +378,7 @@ lexeme *tokenizeSourceProgram(char *input) {
             printf("%d ", lexemeList[i].class);
         }
     }
+    //write to output file
     FILE *output = fopen("output.txt", "w");
     if (output == NULL) {
         printf("Error: Unable to open the output file.\n");

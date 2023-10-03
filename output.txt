@@ -35,13 +35,13 @@ read		32
 else		33
 4		3
 lpha		2
-Error 1: Identifier too long
-Error 7: Invalid symbol after assignment operator
-Error 7: Invalid symbol after assignment operator
-Error 7: Invalid symbol after assignment operator
-Error 7: Invalid symbol after assignment operator
-Error 7: Invalid symbol after assignment operator
-Error 7: Invalid symbol after assignment operator
+Error: Identifier too long
+Error: Invalid symbol after assignment operator
+Error: Invalid symbol after assignment operator
+Error: Invalid symbol after assignment operator
+Error: Invalid symbol after assignment operator
+Error: Invalid symbol after assignment operator
+Error: Invalid symbol after assignment operator
 
 
 Token List:
