@@ -6,6 +6,7 @@
 #include <string.h>
 #include <ctype.h>
 
+//enum for token types
 typedef enum {
     skipsym = 1, identsym, numbersym, plussym, minussym,
     multsym, slashsym, ifelsym, eqlsym, neqsym, lessym, leqsym,
@@ -14,13 +15,17 @@ typedef enum {
     whilesym, dosym, callsym, constsym, varsym, procsym, writesym,
     readsym, elsesym
 } token_type;
-
+//lexeme struct
 typedef struct lexeme {
     token_type class;
     char lexeme[12];
     int currChar;
     int err;
 } lexeme;
+
+
+//Make string array called errors to print out errors to stdout
+char errors[8][100] = {"Error 1: Identifier too long", "Error 2: Number too long", "Error 3: Invalid symbol", "Error 4: Invalid identifier", "Error 5: Invalid keyword", "Error 6: Invalid assignment operator", "Error 7: Invalid symbol after assignment operator", "Error 8: Invalid symbol after number"};
 
 
 
@@ -32,7 +37,7 @@ int lineNumber = 1;
 int columnNumber = 0;
 
 // Function prototypes
-lexeme *tokenizeSourceProgram(int flag, char *input);
+lexeme *tokenizeSourceProgram(char *input);
 int isWhitespace(char c);
 int word_compare(char tempstr[]);
 void skipComment(char *input, int *input_location);
@@ -47,8 +52,9 @@ int main(int argc, char *argv[]) {
         // If an argument is provided, use it as the filename
         filename = argv[1];
     } else {
-        // If no argument is provided, use a default filename
-        filename = "test_case_03.txt";
+        // Otherwise, prompt the user for a filename
+        printf("Enter the name of the file to be compiled: ");
+        scanf("%s", filename);
     }
 
 
@@ -57,36 +63,26 @@ int main(int argc, char *argv[]) {
         printf("Error: Unable to open the source program file '%s'.\n", filename);
         return 1;
     }
-
+    //read in the file
     while (fscanf(sourcefile, "%c", &tempstr) != EOF){
+        printf("%c", tempstr);
         input[index++] = tempstr;
     }
+    //null terminator for the input
     input[index] = '\0';
     fclose(sourcefile);
 
 
 
-    // Call the function to tokenize the source program
-    int flag = 0;
-    lexeme *finalList = tokenizeSourceProgram(flag, input);
-    //TO DO ! TO DO ! TO DO! TO DO!
-    //Print the lexeme and tokenType in columns to the console and .txt file
-    FILE *output = fopen("output.txt", "w");
-    if (output == NULL) {
-        printf("Error: Unable to open the output file.\n");
-        return 1;
-    }
+    lexeme *finalList = tokenizeSourceProgram(input);
     
-    printf("\n");
-    fprintf(output, "\n");
-    fclose(output);
 
 
 
     return 0;
 }
 
-lexeme *tokenizeSourceProgram(int flag, char *input) {
+lexeme *tokenizeSourceProgram(char *input) {
   lexeme *lexemeList = calloc(MAX_LEXEMES, sizeof(lexeme));
     int input_location = 0;
     int lexeme_index = 0;
@@ -95,9 +91,10 @@ lexeme *tokenizeSourceProgram(int flag, char *input) {
 
     char *tempstr = (char*) calloc(12, sizeof(char));
 
+    //loop through the input string
     while(input[input_location] != '\0'){
+        //print lexemelist at lexemeindex
         int currChar = input[input_location];
-
         strcpy(tempstr, "");
         tempstr_location = 0;
 
@@ -110,6 +107,7 @@ lexeme *tokenizeSourceProgram(int flag, char *input) {
             skipComment(input, &input_location);
             continue;
         }
+        //handle identifiers
         else if (isalpha(currChar)){
             while(isalnum(input[input_location]) && tempstr_location < 12){
                 tempstr[tempstr_location] = input[input_location];
@@ -121,15 +119,22 @@ lexeme *tokenizeSourceProgram(int flag, char *input) {
 
             tempstr[tempstr_location] = '\0';
 
+            
+
             if (isalnum(input[input_location + 1])){
+                //finish parsing the invalid identifier
+                while(isalnum(input[input_location])){
+                    tempstr[tempstr_location] = input[input_location];
+                    tempstr_location++;
+                    input_location++;
+                }
                 lexemeList[lexeme_index].class = 99;
                 lexemeList[lexeme_index].err = 1;
+                //print the whole invalid identifier
 
                 while(isalnum(input[input_location + 1])){
                     input_location++;
                 }
-
-                input_location--;
             }
             else
             {
@@ -138,9 +143,11 @@ lexeme *tokenizeSourceProgram(int flag, char *input) {
                 if(keyword == identsym){
                     lexemeList[lexeme_index].class = identsym;
                     strcpy(lexemeList[lexeme_index].lexeme, tempstr);
+         
                 }
                 else if (keyword != -1){
                     lexemeList[lexeme_index].class = keyword;
+                    strcpy(lexemeList[lexeme_index].lexeme, tempstr);
                 }
                 else
                 {
@@ -148,28 +155,65 @@ lexeme *tokenizeSourceProgram(int flag, char *input) {
                     lexemeList[lexeme_index].err = 5;
                     error_flag = 1;
                 }
+
             }
         }
+        //handle numbers
         else if (isdigit(currChar)){
-            while(isdigit(currChar) && tempstr_location < 5){
+            int tooLong = 0;
+            while(isdigit(currChar)){
+
+                if(tempstr_location >= 5){
+                    tooLong = 1;
+                }
                 tempstr[tempstr_location] = input[input_location];
                 tempstr_location++;
                 input_location++;
+                currChar = input[input_location];
             }
-
-            input_location--;
             tempstr[tempstr_location] = '\0';
-
-            if(isalnum(input[input_location + 1])){
+            if(tooLong){
+                lexemeList[lexeme_index].class = 99;
+                lexemeList[lexeme_index].err = 2;
+            }
+            else if(isalnum(input[input_location + 1])){
                 if(isdigit(input[input_location + 1])){
+                    //finish parsing the invalid number
+                    
+                    while(isdigit(input[input_location+1])){
+                        tempstr[tempstr_location] = input[input_location];
+                        tempstr_location++;
+                        input_location++;
+                    }
                     lexemeList[lexeme_index].class = 99;
                     lexemeList[lexeme_index].err = 2;
                 }
+                
                 else if (isalpha(input[input_location + 1])){
-                    lexemeList[lexeme_index].class = 99;
-                    lexemeList[lexeme_index].err = 3;
-                }
+                    //tokenize the digits, lower the index, rebuild the tempstr
+                    char *digitString = (char*)malloc(sizeof(char) * tempstr_location + 1);
+                    strcpy(digitString, tempstr);
+                    lexemeList[lexeme_index].class = numbersym;
+                    strcpy(lexemeList[lexeme_index].lexeme, digitString);
+                    lexemeList[lexeme_index].currChar = atoi(digitString);
+                    free(digitString);
+                    //rebuild the tempstring
+                    strcpy(tempstr, "");
+                    input_location -= tempstr_location;
+                    input_location++;
+                    tempstr_location = 0;
+                    lexeme_index++;
+                    //reverse the index
+                    while(isalnum(input[input_location]) && tempstr_location < 12){
+                        tempstr[tempstr_location] = input[input_location];
+                        tempstr_location++;
+                        input_location++;
+                    }
+                    lexemeList[lexeme_index].class = identsym;
+                    strcpy(lexemeList[lexeme_index].lexeme, tempstr);
 
+
+                }
                 while(isalnum(input[input_location + 1])){
                     input_location++;
                 }
@@ -181,47 +225,55 @@ lexeme *tokenizeSourceProgram(int flag, char *input) {
             {
                 char *digitString = (char*)malloc(sizeof(char) * tempstr_location + 1);
                 strcpy(digitString, tempstr);
-
                 lexemeList[lexeme_index].class = numbersym;
+                strcpy(lexemeList[lexeme_index].lexeme, digitString);
                 lexemeList[lexeme_index].currChar = atoi(digitString);
-
                 free(digitString);
-
             }
         }
         else
         {
+            //switch statement for all the symbols
             switch (currChar){
                 case '+':
                     lexemeList[lexeme_index].class = plussym;
+                    lexemeList[lexeme_index].lexeme[0] = '+'; 
                     break;
                 case '-':
                     lexemeList[lexeme_index].class = minussym;
+                    lexemeList[lexeme_index].lexeme[0] = '-';
                     break;
                 case '*':
                     lexemeList[lexeme_index].class = multsym;
+                    lexemeList[lexeme_index].lexeme[0] = '*';
                     break;
                 case '/':
                     lexemeList[lexeme_index].class = slashsym;
+                    lexemeList[lexeme_index].lexeme[0] = '/';
                     break;
                 case '=':
+                    lexemeList[lexeme_index].lexeme[0] = '=';
                     if(input[input_location + 1] == '='){
                         lexemeList[lexeme_index].class = eqlsym;
+                        lexemeList[lexeme_index].lexeme[1] = '=';
                         input_location++;
                     }
                     else
                     {
-                        lexemeList[lexeme_index].class = 99;
-                        lexemeList[lexeme_index].err = 4;
-                        error_flag = 1;
+                        lexemeList[lexeme_index].class = eqlsym;
+                        lexemeList[lexeme_index].lexeme[0] = '=';
+
                     }
                     break;
                 case '<':
+                    lexemeList[lexeme_index].lexeme[0] = '<';
                     if (input[input_location + 1] == '='){
+                        lexemeList[lexeme_index].lexeme[1] = '=';
                         lexemeList[lexeme_index].class = leqsym;
                         input_location++;
                     }
                     else if (input[input_location + 1] == '>'){
+                        lexemeList[lexeme_index].lexeme[1] = '>';
                         lexemeList[lexeme_index].class = neqsym;
                         input_location++;
                     }
@@ -231,11 +283,14 @@ lexeme *tokenizeSourceProgram(int flag, char *input) {
                     }
                     break;
                 case '>':
+                    lexemeList[lexeme_index].lexeme[0] = '>';
                     if (input[input_location + 1] == '='){
+                        lexemeList[lexeme_index].lexeme[1] = '=';
                         lexemeList[lexeme_index].class = geqsym;
                         input_location++;
                     }
                     else if (input[input_location + 1] == '<'){
+                        lexemeList[lexeme_index].lexeme[1] = '<';
                         lexemeList[lexeme_index].class = neqsym;
                         input_location++;
                     }
@@ -245,22 +300,30 @@ lexeme *tokenizeSourceProgram(int flag, char *input) {
                     }
                     break;
                 case '(':
+                    lexemeList[lexeme_index].lexeme[0] = '(';
                     lexemeList[lexeme_index].class = lparentsym;
                     break;
                 case ')':
+                    lexemeList[lexeme_index].lexeme[0] = ')';
                     lexemeList[lexeme_index].class = rparentsym;
                     break;
                 case ',':
+                    lexemeList[lexeme_index].lexeme[0] = ',';
                     lexemeList[lexeme_index].class = commasym;
+                    lexemeList[lexeme_index].lexeme[0] = ',';
                     break;
                 case ';':
+                    lexemeList[lexeme_index].lexeme[0] = ';';
                     lexemeList[lexeme_index].class = semicolonsym;
                     break;
                 case '.':
+                    lexemeList[lexeme_index].lexeme[0] = '.';
                     lexemeList[lexeme_index].class = periodsym;
                     break;
                 case ':':
+                    lexemeList[lexeme_index].lexeme[0] = ':';
                     if (input[input_location + 1] == '='){
+                        lexemeList[lexeme_index].lexeme[1] = '=';
                         lexemeList[lexeme_index].class = becomessym;
                         input_location++;
                     }
@@ -281,34 +344,84 @@ lexeme *tokenizeSourceProgram(int flag, char *input) {
         input_location++;
         lexeme_index++;
 
-        if(flag && !error_flag){
-            // PRINT OUT
-            return lexemeList;
-        }
-        else if (flag && error_flag){
-            // PRINT OUT ERROR
-            return lexemeList;
-        }
-        else if (!flag && !error_flag)
-        {
-            return lexemeList;
-        }
-        else
-            return NULL;
+ 
 
     }
+    printf("Lexeme Table\n\n");
+    printf("lexeme\t\ttoken type\n");
+    for(int i = 0; i < lexeme_index; i++){
+        if(lexemeList[i].class == 99){
+            printf("%s\n", errors[lexemeList[i].err - 1]);
+        }
+        else
+        {
+            printf("%s\t\t", lexemeList[i].lexeme);
+            printf("%d\n", lexemeList[i].class);
+        }
+       
+    }
+    printf("\n\n");
+    printf("Token List:\n");
+    //print out each token number and also print out the lexeme if it is an identifier or number
+
+    for(int i = 0; i < lexeme_index; i++){
+        if((lexemeList[i].class == 2 || lexemeList[i].class == 3) && lexemeList[i].err == 0){
+            printf("%d %s ", lexemeList[i].class, lexemeList[i].lexeme);
+        }
+        else if(lexemeList[i].err == 0){
+            printf("%d ", lexemeList[i].class);
+        }
+    }
+    FILE *output = fopen("output.txt", "w");
+    if (output == NULL) {
+        printf("Error: Unable to open the output file.\n");
+        return 1;
+    }
+    fprintf(output,"Lexeme Table\n\n");
+    fprintf(output,"lexeme\t\ttoken type\n");
+    for(int i = 0; i < lexeme_index; i++){
+        if(lexemeList[i].class == 99){
+            fprintf(output, "%s\n", errors[lexemeList[i].err - 1]);
+        }
+        else
+        {
+            fprintf(output, "%s\t\t", lexemeList[i].lexeme);
+            fprintf(output, "%d\n", lexemeList[i].class);
+        }
+       
+    }
+    fprintf(output, "\n\n");
+    fprintf(output, "Token List:\n");
+    //print out each token number and also print out the lexeme if it is an identifier or number
+
+    for(int i = 0; i < lexeme_index; i++){
+        if((lexemeList[i].class == 2 || lexemeList[i].class == 3) && lexemeList[i].err == 0){
+            fprintf(output, "%d %s ", lexemeList[i].class, lexemeList[i].lexeme);
+        }
+        else if(lexemeList[i].err == 0){
+            fprintf(output, "%d ", lexemeList[i].class);
+        }
+    }
+
+    fclose(output);
+    free(lexemeList);
+    free(tempstr);
+    free(input);
+    return lexemeList;
+   
+
 }
 
 
 
 
-
+//function to determine if a character is whitespace
 int isWhitespace(char c) {
     return c == ' ' || c == '\t' || c == '\n';
 }
 
 
-
+//function to compare words
 int word_compare(char tempstr[])
 {
 	if (strcmp(tempstr, "const") == 0)
@@ -335,17 +448,15 @@ int word_compare(char tempstr[])
 		return readsym;
 	else if (strcmp(tempstr, "write") == 0)
 		return writesym;
-	else if (strcmp(tempstr, "def") == 0)
-		return ;
-	else if (strcmp(tempstr, "return") == 0)
-		return ;
-	else if (strcmp(tempstr, "main") == 0)
-		return -1;
-	else if (strcmp(tempstr, "null") == 0)
-		return -1;
+	else if (strcmp(tempstr, "ifel") == 0)
+		return ifelsym;
+    else if (strcmp(tempstr, "else") == 0)
+        return elsesym;
 	else
 		return identsym;
 }
+
+//function to skip comments
 
 void skipComment(char *input, int *input_location) {
     while (input[*input_location] != '*' || input[*input_location + 1] != '/') {

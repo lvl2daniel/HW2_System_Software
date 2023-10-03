@@ -33,6 +33,6 @@ else
 4lpha
 /* Comment should be ignored and not tokenized */
 identifierToLong
-9999999999
+999999999
 !@_#$^
 
